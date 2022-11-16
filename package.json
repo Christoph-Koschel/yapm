@@ -1,0 +1,33 @@
+{
+  "name": "yapm",
+  "version": "1.0.0",
+  "description": "A package manager framework",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Christoph-Koschel/yapm.git"
+  },
+  "keywords": [
+    "package",
+    "manager",
+    "framework"
+  ],
+  "author": "Christoph Koschel",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Christoph-Koschel/yapm/issues"
+  },
+  "homepage": "https://github.com/Christoph-Koschel/yapm#readme",
+  "dependencies": {
+    "@types/adm-zip": "^0.5.0",
+    "@types/node": "^18.11.9",
+    "@types/node-fetch": "^2.6.2",
+    "@types/semver": "^7.3.13",
+    "adm-zip": "^0.5.9",
+    "node-fetch": "^3.3.0",
+    "semver": "^7.3.8"
+  }
+}
