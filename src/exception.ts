@@ -21,3 +21,9 @@ export class ProjectInitException extends Error {
         super(message);
     }
 }
+
+export class WebException extends Error {
+    constructor(message: string) {
+        super(message);
+    }
+}

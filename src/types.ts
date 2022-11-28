@@ -13,6 +13,10 @@ export interface YAPMConfigDependencies {
     resolve: string;
 }
 
+export interface OutputStream {
+    (data: string): void
+}
+
 export function depToConf(dep: YAPMConfigDependencies): YAPMConfig {
     return {
         name: dep.name,

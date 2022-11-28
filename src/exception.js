@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ProjectInitException = exports.FetchError = exports.StructureException = exports.WrongFormatException = void 0;
+exports.WebException = exports.ProjectInitException = exports.FetchError = exports.StructureException = exports.WrongFormatException = void 0;
 class WrongFormatException extends Error {
     constructor(message) {
         super(message);
@@ -25,4 +25,10 @@ class ProjectInitException extends Error {
     }
 }
 exports.ProjectInitException = ProjectInitException;
+class WebException extends Error {
+    constructor(message) {
+        super(message);
+    }
+}
+exports.WebException = WebException;
 //# sourceMappingURL=exception.js.map

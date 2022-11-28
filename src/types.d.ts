@@ -10,6 +10,9 @@ export interface YAPMConfigDependencies {
     version: string;
     resolve: string;
 }
+export interface OutputStream {
+    (data: string): void;
+}
 export declare function depToConf(dep: YAPMConfigDependencies): YAPMConfig;
 export declare const YAPM_TEMPLATE: YAPMConfig;
 //# sourceMappingURL=types.d.ts.map

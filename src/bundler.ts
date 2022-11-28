@@ -1,29 +1,34 @@
 import {checkCWD, checkProjectConfigExists} from "./structure";
 import {readConfig} from "./project";
-import {YAPMConfig} from "./types";
+import {OutputStream, YAPMConfig} from "./types";
 import * as AdmZip from "adm-zip";
 import * as path from "path";
-import * as url from "url";
 import * as fs from "fs";
 
-export function createPackage(cwd: string) {
+export function createPackage(cwd: string, out: OutputStream): string {
     checkCWD(cwd);
 
     checkProjectConfigExists(cwd);
+    out("==== PACK PROJECT ====");
+
     let config: YAPMConfig = readConfig(cwd);
 
     let zip: AdmZip = new AdmZip();
     fs.readdirSync(cwd).forEach(value => {
-        if (value != "lib") {
+        if (value != "lib" && !value.endsWith(".yapm.tar")) {
             let entry = path.join(cwd, value);
-
+            out(`Include: "${entry}"`);
             if (fs.statSync(entry).isFile()) {
                 zip.addLocalFile(entry);
             } else if (fs.statSync(entry).isDirectory()) {
-                zip.addLocalFolder(path.join(cwd, value));
+                zip.addLocalFolder(entry, value);
             }
         }
     });
 
-    zip.writeZip(path.join(cwd, config.name + "-" + config.version.replace(/\./gi, "_") + ".tar"));
+    out("Write tarball...");
+    const outFile: string = path.join(cwd, config.name + "-" + config.version.replace(/\./gi, "-") + ".yapm.tar");
+    zip.writeZip(outFile);
+    out("Package created");
+    return outFile;
 }

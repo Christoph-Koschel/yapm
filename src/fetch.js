@@ -1,26 +1,28 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fetchPackage = exports.unInstallPackage = exports.installPackage = void 0;
-const node_fetch_1 = require("node-fetch");
 const AdmZip = require("adm-zip");
 const fs = require("fs");
-const path = require("path");
+const http = require("http");
 const types_1 = require("./types");
 const structure_1 = require("./structure");
 const exception_1 = require("./exception");
 const project_1 = require("./project");
-async function installPackage(url, cwd) {
+const url = require("url");
+async function installPackage(url, cwd, out) {
+    out("==== INSTALL ====");
     let yapmConfig = (0, project_1.readConfig)(cwd);
-    let packageConfig = await installCycle(url, cwd);
+    let packageConfig = await installCycle(url, cwd, out);
     yapmConfig.dependencies.push({
         name: packageConfig.name,
         version: packageConfig.version,
         resolve: url
     });
+    out("Installation finished");
     (0, project_1.writeConfig)(cwd, yapmConfig);
 }
 exports.installPackage = installPackage;
-async function installCycle(url, cwd) {
+async function installCycle(url, cwd, out) {
     const buff = await fetchPackage(url);
     let zip = new AdmZip(buff);
     let config = zip.getEntry("yapm.json");
@@ -28,10 +30,12 @@ async function installCycle(url, cwd) {
         throw new exception_1.FetchError("Error on package file, could not find yapm.json");
     }
     let packageYapmConfig = JSON.parse(config.getData().toString("utf-8"));
+    out(`Install package "${packageYapmConfig.name}@${packageYapmConfig.version}"`);
     (0, structure_1.saveLib)(cwd, zip, packageYapmConfig);
     for (const value of packageYapmConfig.dependencies) {
         if (!(0, structure_1.libIsInstalled)(cwd, (0, types_1.depToConf)(value))) {
-            await installCycle(value.resolve, cwd);
+            out(`Install dependency "${value.name}@${value.version}"`);
+            await installCycle(value.resolve, cwd, out);
         }
     }
     return packageYapmConfig;
@@ -48,15 +52,28 @@ function unInstallPackage(cwd, name, version) {
     (0, project_1.writeConfig)(cwd, config);
 }
 exports.unInstallPackage = unInstallPackage;
-async function fetchPackage(url) {
-    if (["/", "./", "../"].some(prefix => url.startsWith(prefix)) || path.isAbsolute(url) && fs.existsSync(url) && fs.statSync(url).isFile()) {
-        return fs.readFileSync(url);
+async function fetchPackage(uri) {
+    if (fs.existsSync(uri) && fs.statSync(uri).isFile()) {
+        return fs.readFileSync(uri);
     }
-    let response = await (0, node_fetch_1.default)(url);
-    if (!response.ok) {
-        throw new exception_1.FetchError(`Could not fetch package "${url}"`);
-    }
-    return Buffer.from(await response.arrayBuffer());
+    return new Promise(resolve => {
+        http.get({
+            host: url.parse(uri).host,
+            port: 80,
+            path: url.parse(uri).pathname
+        }, res => {
+            let buff = Buffer.from([]);
+            res.on("data", (data) => {
+                buff = Buffer.concat([buff, data]);
+            });
+            res.on("end", () => {
+                resolve(buff);
+            });
+            res.on("error", () => {
+                throw new exception_1.WebException(`Cannot fetch url "${uri}"`);
+            });
+        });
+    });
 }
 exports.fetchPackage = fetchPackage;
 //# sourceMappingURL=fetch.js.map

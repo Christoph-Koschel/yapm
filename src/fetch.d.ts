@@ -1,5 +1,6 @@
 /// <reference types="node" />
-export declare function installPackage(url: string, cwd: string): Promise<void>;
+import { OutputStream } from "./types";
+export declare function installPackage(url: string, cwd: string, out: OutputStream): Promise<void>;
 export declare function unInstallPackage(cwd: string, name: string, version: string): void;
-export declare function fetchPackage(url: string): Promise<Buffer>;
+export declare function fetchPackage(uri: string): Promise<Buffer>;
 //# sourceMappingURL=fetch.d.ts.map

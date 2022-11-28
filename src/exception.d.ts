@@ -10,4 +10,7 @@ export declare class FetchError extends Error {
 export declare class ProjectInitException extends Error {
     constructor(message: string);
 }
+export declare class WebException extends Error {
+    constructor(message: string);
+}
 //# sourceMappingURL=exception.d.ts.map

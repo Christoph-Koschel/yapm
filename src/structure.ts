@@ -91,11 +91,6 @@ export function saveLib(cwd: string, buff: AdmZip, conf: YAPMConfig) {
     buff.extractAllTo(libRoot, true);
 }
 
-/**
- * Note: A library is for yapm installed when the yapm.json config file exists and has the right format
- * @param cwd
- * @param conf
- */
 export function libIsInstalled(cwd: string, conf: YAPMConfig): boolean {
     try {
         let root = checkLibRoot(cwd, true);
