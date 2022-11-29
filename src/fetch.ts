@@ -1,11 +1,10 @@
 import * as AdmZip from "adm-zip";
 import * as fs from "fs";
-import * as http from "http";
-import {depToConf, OutputStream, YAPM_TEMPLATE, YAPMConfig} from "./types";
+import {depToConf, FetchBridge, OutputStream, YAPM_TEMPLATE, YAPMConfig} from "./types";
 import {checkLibData, checkLibRoot, libIsInstalled, saveLib} from "./structure";
 import {FetchError, WebException} from "./exception";
 import {readConfig, writeConfig} from "./project";
-import * as url from "url";
+import "./fetch-groups/group";
 
 export async function installPackage(url: string, cwd: string, out: OutputStream) {
     out("==== INSTALL ====");
@@ -24,7 +23,7 @@ export async function installPackage(url: string, cwd: string, out: OutputStream
 }
 
 async function installCycle(url: string, cwd: string, out: OutputStream): Promise<YAPMConfig> {
-    const buff: Buffer = await fetchPackage(url);
+    const buff: Buffer = await fetchPackage(url, out);
     let zip = new AdmZip(buff);
     let config = zip.getEntry("yapm.json");
     if (!config) {
@@ -60,29 +59,41 @@ export function unInstallPackage(cwd: string, name: string, version: string) {
     writeConfig(cwd, config);
 }
 
-export async function fetchPackage(uri: string): Promise<Buffer> {
+export async function fetchPackage(uri: string, out: OutputStream): Promise<Buffer> {
     if (fs.existsSync(uri) && fs.statSync(uri).isFile()) {
         return fs.readFileSync(uri);
     }
 
-    return new Promise(resolve => {
-        http.get({
-            host: url.parse(uri).host,
-            port: 80,
-            path: url.parse(uri).pathname
-        }, res => {
-            let buff = Buffer.from([]);
+    let match = uri.match(/.*:\/\/.*\/.*@.*/g);
+    if (match == null) {
+        throw new WebException("Wrong fetch format (<bridge>://<username>/<package name>@<version>)");
+    }
 
-            res.on("data", (data: Buffer) => {
-                buff = Buffer.concat([buff, data]);
-            });
+    /// bridge://user-name/package-name@version
+    let bridge: string = uri.match(/.*:\/\//g)[0];
+    /// user-name/package-name@version
+    uri = uri.replace(bridge, "");
+    bridge = bridge.substring(0, bridge.length - 3);
 
-            res.on("end", () => {
-                resolve(buff);
+    let username: string = uri.match(/.*\//g)[0];
+    /// package-name@version
+    uri = uri.replace(username, "");
+    username = username.substring(1, username.length - 1);
+
+    let packageName: string = uri.match(/.*@/)[0];
+    packageName.substring(0, packageName.length - 1);
+
+    let version: string = uri.replace(packageName, "");
+
+    for (const fetchBridge of FetchBridge.getRegisters()) {
+        if (fetchBridge.isBridge(bridge)) {
+            let r = fetchBridge.fetch(bridge, username, packageName, version);
+            r.catch((err) => {
+                out(err);
             });
-            res.on("error", () => {
-                throw new WebException(`Cannot fetch url "${uri}"`);
-            });
-        });
-    });
+            return await r;
+        }
+    }
+
+    out("No Bridge Class registered for the bridge " + bridge);
 }

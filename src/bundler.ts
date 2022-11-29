@@ -27,7 +27,7 @@ export function createPackage(cwd: string, out: OutputStream): string {
     });
 
     out("Write tarball...");
-    const outFile: string = path.join(cwd, config.name + "-" + config.version.replace(/\./gi, "-") + ".yapm.tar");
+    const outFile: string = path.join(cwd, config.name + "-" + config.version.replace(/\./gi, "-") + ".yapm.tgz");
     zip.writeZip(outFile);
     out("Package created");
     return outFile;
