@@ -13,24 +13,14 @@ export interface YAPMConfigDependencies {
     resolve: string;
 }
 
-export interface OutputStream {
-    (data: string): void
+export interface YAPMRegister {
+    name: string;
+    url: string;
+    type: "GITHUB" | "GIT" | "YAPM-REG"
 }
 
-export abstract class FetchBridge {
-    public abstract isBridge(bridge: string): boolean;
-
-    public abstract fetch(bridge: string, username: string, packageName: string, version: string): Promise<Buffer>
-
-    private static registers: FetchBridge[] = [];
-
-    public static register(c: FetchBridge) {
-        this.registers.push(c);
-    }
-
-    public static getRegisters(): FetchBridge[] {
-        return this.registers;
-    }
+export interface OutputStream {
+    (data: string): void
 }
 
 export function depToConf(dep: YAPMConfigDependencies): YAPMConfig {
