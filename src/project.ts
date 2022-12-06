@@ -36,7 +36,7 @@ function getRegisterPath(): string {
             {
                 type: "GITHUB",
                 name: "github.com",
-                url: "http://github.com/{{username}}/{{package}}/releases/download/{{version}}/{{package}}-{{e-version}}.yapm.tar"
+                url: "http://github.com/{{username}}/{{package}}/releases/download/{{version}}/{{package}}-{{version}}.yapm.zip"
             }
         ]));
     }

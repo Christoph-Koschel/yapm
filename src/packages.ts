@@ -79,8 +79,14 @@ async function installCycle(fetch: { packageName: string, username?: string, ver
 }
 
 export async function fetchPackageURL(uri: string, out: OutputStream) {
+    let cwd = process.cwd();
+
     if (fs.existsSync(uri) && fs.statSync(uri).isFile()) {
         return fs.readFileSync(uri);
+    }
+
+    if (fs.existsSync(path.join(cwd, uri)) && fs.statSync(path.join(cwd, uri)).isFile()) {
+        return fs.readFileSync(path.join(cwd, uri));
     }
 
     return await fetchURL(uri);
@@ -132,7 +138,7 @@ async function urlExists(uri: string): Promise<boolean> {
 async function fetchURL(uri: string): Promise<Buffer> {
     return new Promise((resolve, reject) => {
         let tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "yapm"));
-        let tmpFile = path.join(tmpDir, "download.tgz");
+        let tmpFile = path.join(tmpDir, "download.zip");
         // let stream = fs.createWriteStream(tmpFile);
 
         // let req = http.get({

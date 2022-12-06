@@ -15,7 +15,7 @@ export function createPackage(cwd: string, out: OutputStream): string {
 
     let zip: AdmZip = new AdmZip();
     fs.readdirSync(cwd).forEach(value => {
-        if (value != "lib" && !value.endsWith(".yapm.tar")) {
+        if (value != "lib" && !value.endsWith(".yapm.zip")) {
             let entry = path.join(cwd, value);
             out(`Include: "${entry}"`);
             if (fs.statSync(entry).isFile()) {
@@ -27,7 +27,7 @@ export function createPackage(cwd: string, out: OutputStream): string {
     });
 
     out("Write tarball...");
-    const outFile: string = path.join(cwd, config.name + "-" + config.version.replace(/\./gi, "-") + ".yapm.tgz");
+    const outFile: string = path.join(cwd, config.name + "-" + config.version + ".yapm.zip");
     zip.writeZip(outFile);
     out("Package created");
     return outFile;
