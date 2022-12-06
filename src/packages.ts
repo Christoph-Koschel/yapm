@@ -89,6 +89,7 @@ export async function fetchPackageURL(uri: string, out: OutputStream) {
         return fs.readFileSync(path.join(cwd, uri));
     }
 
+
     return await fetchURL(uri);
 }
 
