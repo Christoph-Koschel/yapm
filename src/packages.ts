@@ -122,6 +122,8 @@ export async function fetchPackage(packageName: string, username: string, versio
                         let releases = JSON.parse(content);
                         let latest = releases.pop();
                         version = latest.tag_name;
+                    } else {
+                        throw new FetchError("Cannot resolve " + packageName);
                     }
                 }
 
