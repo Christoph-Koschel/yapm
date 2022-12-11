@@ -9,7 +9,7 @@ export function createPackage(cwd: string, out: OutputStream): string {
     checkCWD(cwd);
 
     checkProjectConfigExists(cwd);
-    out("==== PACK PROJECT ====");
+    out.log("==== PACK PROJECT ====");
 
     let config: YAPMConfig = readConfig(cwd);
 
@@ -17,7 +17,7 @@ export function createPackage(cwd: string, out: OutputStream): string {
     fs.readdirSync(cwd).forEach(value => {
         if (value != "lib" && !value.endsWith(".yapm.zip")) {
             let entry = path.join(cwd, value);
-            out(`Include: "${entry}"`);
+            out.log(`Include: "${entry}"`);
             if (fs.statSync(entry).isFile()) {
                 zip.addLocalFile(entry);
             } else if (fs.statSync(entry).isDirectory()) {
@@ -26,9 +26,9 @@ export function createPackage(cwd: string, out: OutputStream): string {
         }
     });
 
-    out("Write tarball...");
+    out.log("Write tarball...");
     const outFile: string = path.join(cwd, config.name + "-" + config.version + ".yapm.zip");
     zip.writeZip(outFile);
-    out("Package created");
+    out.log("Package created");
     return outFile;
 }

@@ -20,7 +20,9 @@ export interface YAPMRegister {
 }
 
 export interface OutputStream {
-    (data: string): void
+    log(data: string): void;
+    error(data: string): void;
+    warning(data: string): void;
 }
 
 export function depToConf(dep: YAPMConfigDependencies): YAPMConfig {

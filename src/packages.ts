@@ -25,10 +25,16 @@ export function uninstallPackage(cwd: string, name: string, version: string) {
     writeConfig(cwd, config);
 }
 
-export async function installPackage(fetch: { packageName: string, username?: string, version?: string }, cwd: string, out: OutputStream) {
-    out("==== INSTALL ====");
+export async function installPackage(fetch: { packageName: string, username?: string, version?: string }, cwd: string, ignoreDependencies: boolean, out: OutputStream) {
+    out.log("==== INSTALL ====");
     let yapmConfig = readConfig(cwd);
-    let [resolve, packageConfig] = await installCycle(fetch, cwd, out);
+    let [resolve, packageConfig, success] = await installCycle(fetch, cwd, ignoreDependencies, out);
+
+    if (!success) {
+        out.error(`Could not install "${fetch.packageName}" (See errors above for more details)`);
+        return;
+    }
+
 
     let dep: YAPMConfigDependencies = {
         name: packageConfig.name,
@@ -40,16 +46,21 @@ export async function installPackage(fetch: { packageName: string, username?: st
         yapmConfig.dependencies.push(dep);
     }
 
-    out("Installation finished");
+    out.log("Installation finished");
     writeConfig(cwd, yapmConfig);
 }
 
-async function installCycle(fetch: { packageName: string, username?: string, version?: string }, cwd: string, out: OutputStream): Promise<[string, YAPMConfig]> {
+async function installCycle(fetch: { packageName: string, username?: string, version?: string }, cwd: string, ignoreDependencies: boolean, out: OutputStream): Promise<[string, YAPMConfig, boolean]> {
     let buff: Buffer;
     let url: string;
 
     if (fetch.username == null && fetch.version == null) {
-        buff = await fetchPackageURL(fetch.packageName, out);
+        let res: Buffer | false = await fetchPackageURL(fetch.packageName, out);
+        if (!res) {
+            return [null, null, false];
+        }
+        buff = res;
+
         url = fetch.packageName;
 
     } else {
@@ -65,20 +76,23 @@ async function installCycle(fetch: { packageName: string, username?: string, ver
     }
 
     let packageYapmConfig: YAPMConfig = JSON.parse(config.getData().toString("utf-8"));
-    out(`Install package "${packageYapmConfig.name}@${packageYapmConfig.version}"`);
+    out.log(`Install package "${packageYapmConfig.name}@${packageYapmConfig.version}"`);
     saveLib(cwd, zip, packageYapmConfig);
 
-    for (const value of packageYapmConfig.dependencies) {
-        if (!libIsInstalled(cwd, depToConf(value))) {
-            out(`Install dependency "${value.name}@${value.version}"`);
-            await installCycle({packageName: value.resolve}, cwd, out);
+    if (!ignoreDependencies) {
+
+        for (const value of packageYapmConfig.dependencies) {
+            if (!libIsInstalled(cwd, depToConf(value))) {
+                out.log(`Install dependency "${value.name}@${value.version}"`);
+                await installCycle({packageName: value.resolve}, cwd, ignoreDependencies, out);
+            }
         }
     }
 
-    return [url, packageYapmConfig];
+    return [url, packageYapmConfig, true];
 }
 
-export async function fetchPackageURL(uri: string, out: OutputStream) {
+export async function fetchPackageURL(uri: string, out: OutputStream): Promise<(Buffer | false)> {
     let cwd = process.cwd();
 
     if (fs.existsSync(uri) && fs.statSync(uri).isFile()) {
@@ -88,34 +102,57 @@ export async function fetchPackageURL(uri: string, out: OutputStream) {
     if (fs.existsSync(path.join(cwd, uri)) && fs.statSync(path.join(cwd, uri)).isFile()) {
         return fs.readFileSync(path.join(cwd, uri));
     }
-
-
-    return await fetchURL(uri);
+    if (validUrl(uri)) {
+        return await fetchURL(uri);
+    }
+    out.error("File don't exists and has not a valid URL schema");
+    return false;
 }
 
 export async function fetchPackage(packageName: string, username: string, version: string, out: OutputStream): Promise<[string, Buffer]> {
     const registers: YAPMRegister[] = readRegisterConfig();
     for (const value of registers) {
-        let url = value.url;
-        url = url.replace(/\{\{package}}/gi, packageName);
-        url = url.replace(/\{\{username}}/gi, username);
-        url = url.replace(/\{\{version}}/gi, version);
-        url = url.replace(/\{\{e-version}}/gi, version.replace(/\./gi, "-"));
-
         switch (value.type) {
             case "GITHUB":
-                out("Fetch Package from " + value.name);
+                let url = value.url;
+
+                if (version == "latest") {
+                    if (await urlExists(`http://github.com/${username}/${packageName}`)) {
+                        let content = (await fetchURL(`https://api.github.com/repos/${username}/${packageName}/releases`)).toString();
+                        let releases = JSON.parse(content);
+                        let latest = releases.pop();
+                        version = latest.tag_name;
+                    }
+                }
+
+                url = url.replace(/\{\{package}}/gi, packageName);
+                url = url.replace(/\{\{username}}/gi, username);
+                url = url.replace(/\{\{version}}/gi, version);
+                url = url.replace(/\{\{e-version}}/gi, version.replace(/\./gi, "-"));
+
+                out.log("Fetch Package from " + value.name);
                 if (await urlExists(url)) {
                     return [url, await fetchURL(url)];
                 }
             case "GIT":
+                // TODO write git support
                 break;
             case "YAPM-REG":
+                // TODO write yapm-reg support
                 break;
         }
     }
 
     throw new FetchError("Cannot resolve " + packageName);
+}
+
+function validUrl(url: string): boolean {
+    try {
+        new URL(url);
+        return true;
+    } catch {
+        return false;
+    }
 }
 
 async function urlExists(uri: string): Promise<boolean> {
@@ -195,5 +232,3 @@ export function dependencyExists(config: YAPMConfig, dep: YAPMConfigDependencies
 
     return false;
 }
-
-// yapm install -p yapm -u Christoph-Koschel -v 1.0.0
